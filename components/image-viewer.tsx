@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Play, Pause, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
+import { Play, Pause, ChevronLeft, ChevronRight, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -13,25 +13,6 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
-// Local image folders - add your images to public/images/folder-X/
-const imageFolders: Record<string, string[]> = {
-  "Folder 1": [
-    "/images/folder-1/image-1.png",
-    "/images/folder-1/image-2.png",
-    "/images/folder-1/image-3.png",
-  ],
-  "Folder 2": [
-    "/images/folder-2/image-1.png",
-    "/images/folder-2/image-2.png",
-    "/images/folder-2/image-3.png",
-  ],
-  "Folder 3": [
-    "/images/folder-3/image-1.png",
-    "/images/folder-3/image-2.png",
-    "/images/folder-3/image-3.png",
-  ],
-};
-
 const SLIDESHOW_INTERVALS = [
   { label: "2 seconds", value: 2000 },
   { label: "3 seconds", value: 3000 },
@@ -40,20 +21,47 @@ const SLIDESHOW_INTERVALS = [
 ];
 
 export function ImageViewer() {
-  const [selectedFolder, setSelectedFolder] = useState<string>("Folder 1");
+  const [imageFolders, setImageFolders] = useState<Record<string, string[]>>({});
+  const [selectedFolder, setSelectedFolder] = useState<string>("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [intervalSpeed, setIntervalSpeed] = useState(3000);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingFolders, setIsFetchingFolders] = useState(true);
 
   const images = imageFolders[selectedFolder] || [];
+  const folderNames = Object.keys(imageFolders);
+
+  // Fetch image folders from API
+  useEffect(() => {
+    async function fetchFolders() {
+      try {
+        const response = await fetch("/api/images");
+        const data = await response.json();
+        setImageFolders(data.folders);
+        
+        // Select first folder by default
+        const folders = Object.keys(data.folders);
+        if (folders.length > 0) {
+          setSelectedFolder(folders[0]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch image folders:", error);
+      } finally {
+        setIsFetchingFolders(false);
+      }
+    }
+    fetchFolders();
+  }, []);
 
   const goToNext = useCallback(() => {
+    if (images.length === 0) return;
     setIsLoading(true);
     setCurrentIndex((prev) => (prev + 1) % images.length);
   }, [images.length]);
 
   const goToPrev = useCallback(() => {
+    if (images.length === 0) return;
     setIsLoading(true);
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
   }, [images.length]);
@@ -68,11 +76,11 @@ export function ImageViewer() {
 
   // Slideshow effect
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || images.length === 0) return;
 
     const interval = setInterval(goToNext, intervalSpeed);
     return () => clearInterval(interval);
-  }, [isPlaying, intervalSpeed, goToNext]);
+  }, [isPlaying, intervalSpeed, goToNext, images.length]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -88,6 +96,18 @@ export function ImageViewer() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [goToNext, goToPrev]);
+
+  // Loading state while fetching folders
+  if (isFetchingFolders) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
+          <p className="text-muted-foreground">Loading image folders...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full bg-background">
@@ -109,14 +129,8 @@ export function ImageViewer() {
                   src={images[currentIndex]}
                   alt={`${selectedFolder} image ${currentIndex + 1}`}
                   className="max-w-full max-h-full object-contain"
-                  onLoad={() => {
-                    console.log("[v0] Image loaded:", images[currentIndex]);
-                    setIsLoading(false);
-                  }}
-                  onError={(e) => {
-                    console.log("[v0] Image failed to load:", images[currentIndex]);
-                    setIsLoading(false);
-                  }}
+                  onLoad={() => setIsLoading(false)}
+                  onError={() => setIsLoading(false)}
                 />
               </div>
 
@@ -155,7 +169,8 @@ export function ImageViewer() {
           ) : (
             <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground">
               <ImageIcon className="h-16 w-16" />
-              <p>No images in this folder</p>
+              <p>{folderNames.length === 0 ? "No image folders found" : "No images in this folder"}</p>
+              <p className="text-sm">Add images to public/images/[folder-name]/</p>
             </div>
           )}
         </div>
@@ -178,9 +193,9 @@ export function ImageViewer() {
               <SelectValue placeholder="Select a folder" />
             </SelectTrigger>
             <SelectContent>
-              {Object.keys(imageFolders).map((folder) => (
+              {folderNames.map((folder) => (
                 <SelectItem key={folder} value={folder}>
-                  {folder}
+                  {folder} ({imageFolders[folder].length} images)
                 </SelectItem>
               ))}
             </SelectContent>
@@ -215,6 +230,7 @@ export function ImageViewer() {
           size="lg"
           className="w-full gap-2"
           onClick={() => setIsPlaying((prev) => !prev)}
+          disabled={images.length === 0}
         >
           {isPlaying ? (
             <>
@@ -230,52 +246,56 @@ export function ImageViewer() {
         </Button>
 
         {/* Progress Slider */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium">Navigate</label>
-          <Slider
-            value={[currentIndex]}
-            min={0}
-            max={images.length - 1}
-            step={1}
-            onValueChange={(value) => {
-              setCurrentIndex(value[0]);
-              setIsLoading(true);
-            }}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Image 1</span>
-            <span>Image {images.length}</span>
+        {images.length > 1 && (
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Navigate</label>
+            <Slider
+              value={[currentIndex]}
+              min={0}
+              max={images.length - 1}
+              step={1}
+              onValueChange={(value) => {
+                setCurrentIndex(value[0]);
+                setIsLoading(true);
+              }}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Image 1</span>
+              <span>Image {images.length}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Thumbnail Grid */}
-        <div className="space-y-3 flex-1 overflow-hidden">
-          <label className="text-sm font-medium">Thumbnails</label>
-          <div className="grid grid-cols-3 gap-2 overflow-y-auto max-h-[300px] pr-1">
-            {images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  setCurrentIndex(idx);
-                  setIsLoading(true);
-                }}
-                className={cn(
-                  "relative aspect-video rounded-md overflow-hidden border-2 transition-all",
-                  currentIndex === idx
-                    ? "border-primary ring-2 ring-primary/30"
-                    : "border-transparent hover:border-muted-foreground/30"
-                )}
-              >
-                <img
-                  src={img}
-                  alt={`Thumbnail ${idx + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
+        {images.length > 0 && (
+          <div className="space-y-3 flex-1 overflow-hidden">
+            <label className="text-sm font-medium">Thumbnails</label>
+            <div className="grid grid-cols-3 gap-2 overflow-y-auto max-h-[300px] pr-1">
+              {images.map((img, idx) => (
+                <button
+                  key={img}
+                  onClick={() => {
+                    setCurrentIndex(idx);
+                    setIsLoading(true);
+                  }}
+                  className={cn(
+                    "relative aspect-video rounded-md overflow-hidden border-2 transition-all",
+                    currentIndex === idx
+                      ? "border-primary ring-2 ring-primary/30"
+                      : "border-transparent hover:border-muted-foreground/30"
+                  )}
+                >
+                  <img
+                    src={img}
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Keyboard Shortcuts */}
         <div className="mt-auto pt-4 border-t border-border">
