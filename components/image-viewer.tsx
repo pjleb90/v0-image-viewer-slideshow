@@ -38,10 +38,10 @@ export function ImageViewer() {
       try {
         const response = await fetch("/api/images");
         const data = await response.json();
-        setImageFolders(data.folders);
+        setImageFolders(data.folders || {});
         
         // Select first folder by default
-        const folders = Object.keys(data.folders);
+        const folders = Object.keys(data.folders || {});
         if (folders.length > 0) {
           setSelectedFolder(folders[0]);
         }
