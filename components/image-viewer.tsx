@@ -44,15 +44,17 @@ export function ImageViewer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [intervalSpeed, setIntervalSpeed] = useState(3000);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const images = imageFolders[selectedFolder] || [];
 
   const goToNext = useCallback(() => {
+    setIsLoading(true);
     setCurrentIndex((prev) => (prev + 1) % images.length);
   }, [images.length]);
 
   const goToPrev = useCallback(() => {
+    setIsLoading(true);
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
   }, [images.length]);
 
@@ -97,6 +99,7 @@ export function ImageViewer() {
             <>
               {/* Current Image */}
               <div
+                key={`${selectedFolder}-${currentIndex}`}
                 className={cn(
                   "absolute inset-0 flex items-center justify-center transition-opacity duration-500",
                   isLoading ? "opacity-0" : "opacity-100"
@@ -106,7 +109,14 @@ export function ImageViewer() {
                   src={images[currentIndex]}
                   alt={`${selectedFolder} image ${currentIndex + 1}`}
                   className="max-w-full max-h-full object-contain"
-                  onLoad={() => setIsLoading(false)}
+                  onLoad={() => {
+                    console.log("[v0] Image loaded:", images[currentIndex]);
+                    setIsLoading(false);
+                  }}
+                  onError={(e) => {
+                    console.log("[v0] Image failed to load:", images[currentIndex]);
+                    setIsLoading(false);
+                  }}
                 />
               </div>
 
