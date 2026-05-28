@@ -13,35 +13,22 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
-// Demo image folders with placeholder images from picsum
+// Local image folders - add your images to public/images/folder-X/
 const imageFolders: Record<string, string[]> = {
-  Nature: [
-    "https://picsum.photos/seed/nature1/1920/1080",
-    "https://picsum.photos/seed/nature2/1920/1080",
-    "https://picsum.photos/seed/nature3/1920/1080",
-    "https://picsum.photos/seed/nature4/1920/1080",
-    "https://picsum.photos/seed/nature5/1920/1080",
+  "Folder 1": [
+    "/images/folder-1/image-1.png",
+    "/images/folder-1/image-2.png",
+    "/images/folder-1/image-3.png",
   ],
-  Architecture: [
-    "https://picsum.photos/seed/arch1/1920/1080",
-    "https://picsum.photos/seed/arch2/1920/1080",
-    "https://picsum.photos/seed/arch3/1920/1080",
-    "https://picsum.photos/seed/arch4/1920/1080",
-    "https://picsum.photos/seed/arch5/1920/1080",
+  "Folder 2": [
+    "/images/folder-2/image-1.png",
+    "/images/folder-2/image-2.png",
+    "/images/folder-2/image-3.png",
   ],
-  People: [
-    "https://picsum.photos/seed/people1/1920/1080",
-    "https://picsum.photos/seed/people2/1920/1080",
-    "https://picsum.photos/seed/people3/1920/1080",
-    "https://picsum.photos/seed/people4/1920/1080",
-    "https://picsum.photos/seed/people5/1920/1080",
-  ],
-  Abstract: [
-    "https://picsum.photos/seed/abstract1/1920/1080",
-    "https://picsum.photos/seed/abstract2/1920/1080",
-    "https://picsum.photos/seed/abstract3/1920/1080",
-    "https://picsum.photos/seed/abstract4/1920/1080",
-    "https://picsum.photos/seed/abstract5/1920/1080",
+  "Folder 3": [
+    "/images/folder-3/image-1.png",
+    "/images/folder-3/image-2.png",
+    "/images/folder-3/image-3.png",
   ],
 };
 
@@ -53,7 +40,7 @@ const SLIDESHOW_INTERVALS = [
 ];
 
 export function ImageViewer() {
-  const [selectedFolder, setSelectedFolder] = useState<string>("Nature");
+  const [selectedFolder, setSelectedFolder] = useState<string>("Folder 1");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [intervalSpeed, setIntervalSpeed] = useState(3000);
