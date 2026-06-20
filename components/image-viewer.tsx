@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Play, Pause, ChevronLeft, ChevronRight, ImageIcon, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Play, Pause, ChevronLeft, ChevronRight, ImageIcon, Loader2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -28,6 +28,33 @@ export function ImageViewer() {
   const [intervalSpeed, setIntervalSpeed] = useState(3000);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingFolders, setIsFetchingFolders] = useState(true);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize audio element
+  useEffect(() => {
+    audioRef.current = new Audio("/audio/background.mp3");
+    audioRef.current.loop = true;
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Toggle audio playback
+  const toggleAudio = () => {
+    if (!audioRef.current) return;
+    
+    if (isAudioPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsAudioPlaying(!isAudioPlaying);
+  };
 
   const images = imageFolders[selectedFolder] || [];
   const folderNames = Object.keys(imageFolders);
@@ -154,7 +181,7 @@ export function ImageViewer() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-background/50 hover:bg-background/80 backdrop-blur-sm md:right-[340px]"
+                className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-background/50 hover:bg-background/80 backdrop-blur-sm"
                 onClick={goToNext}
               >
                 <ChevronRight className="h-6 w-6" />
@@ -303,6 +330,26 @@ export function ImageViewer() {
             Keyboard shortcuts: ← → to navigate, Space to play/pause
           </p>
         </div>
+
+        {/* Audio Control */}
+        <Button
+          variant="outline"
+          size="lg"
+          className="w-full gap-2"
+          onClick={toggleAudio}
+        >
+          {isAudioPlaying ? (
+            <>
+              <VolumeX className="h-5 w-5" />
+              Stop Music
+            </>
+          ) : (
+            <>
+              <Volume2 className="h-5 w-5" />
+              Play Music
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );
